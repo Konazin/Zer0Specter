@@ -1,4 +1,13 @@
-print("""
+import random
+import string
+import pyzipper
+from itertools import product
+from multiprocessing import Pool, cpu_count
+import sys
+import time
+import os
+
+ascii_zero = (r"""
        █████████████████
      ██▒▒             ██▒▒
     ██▒▒    ██████     ██▒▒
@@ -11,14 +20,37 @@ print("""
 |            ZER0SPECTER                |
 |      Penetration & Exploit            |
 +=======================================+
-
 """)
 
-import random
-import string
-import pyzipper
-from itertools import product
-from multiprocessing import Pool, cpu_count
+def slow_print(text, delay=0.002):
+    for char in text:
+        sys.stdout.write(char)
+        sys.stdout.flush()
+        time.sleep(delay)
+
+def loading_bar(duration=2, length=30):
+    sys.stdout.write("[")
+    sys.stdout.flush()
+    for i in range(length):
+        time.sleep(duration / length)
+        sys.stdout.write("█")
+        sys.stdout.flush()
+    sys.stdout.write("]\n")
+
+def banner():
+    os.system("cls" if os.name == "nt" else "clear")
+    slow_print(ascii_zero, 0.0008)
+    print("\n")
+    slow_print("Loading zer0specter framework...\n", 0.02)
+    loading_bar()
+    time.sleep(0.3)
+    slow_print("Initializing modules...\n", 0.02)
+    loading_bar()
+    time.sleep(0.3)
+    slow_print("Ready.\n", 0.02)
+
+if __name__ == "__main__":
+    banner()
 
 def zipcrack():
     esc1 = str((input('include letters?[y][n] ')))
@@ -104,7 +136,7 @@ def pass_gen():
 
 def win():
     val = 0
-    rec = input("insert your needed: ")
+    rec = input("")
     if rec == "zipbreaker":
         print("""
               #######################
