@@ -94,48 +94,23 @@ def pass_gen():
     cs = int(input('add the number of character for the password: '))
     q1 = str(input('include special character? [y][n]'))
     q2 = str(input('include numbers?[y][n]'))
+    q3 = str(input('include uppercase letters?[y][n]'))
 
-    senhap = []
-    cha1 = string.ascii_lowercase + string.ascii_uppercase + string.punctuation
-    cha2 = string.ascii_lowercase + string.ascii_uppercase
+    senhag = []
 
-    if q1 and q2 == 'y':
-        for _ in range(cs):
-            ran = random.randint(1,2)
-            if ran == 1:
-                senha = random.choice(cha1)
-            else:
-                senha = str(random.randint(0,9))
-            senhap.append(senha)
+    senhap = string.ascii_lowercase
+    if q1 == 'y':
+        senhap += string.punctuation
+    if q2 == 'y':
+        senhap += string.digits
+    if q3 == 'y':
+        senhap += string.ascii_uppercase
 
-    if q1 == 'n' and q2 == 'y':
-        for _ in range(cs):
-            ran = random.randint(1,2)
-            if ran == 1:
-                senha = random.choice(cha2)
-            else:
-                senha = str(random.randint(0,9))
-            senhap.append(senha)
-
-    if q1 =='y' and q2 == 'n':
-        for _ in range(cs):
-            ran = random.randint(1,2)
-            senha = random.choice(cha1)
-            senhap.append(senha)
-
-    if q1 and q2 == 'n':
-        for _ in range(cs):
-            ran = random.randint(1,2)
-            if ran == 1:
-                senha = random.choice(cha2)
-            else:
-                senha = str(random.randint(0,9))
-            senhap.append(senha)
-
-    print(''.join(senhap))
+    for i in range (cs):
+        senhag = random.choice(senhap)
+    print ("".join(senhag))
 
 def win():
-    val = 0
     rec = input("")
     if rec == "zipbreaker":
         print("""
@@ -158,11 +133,3 @@ def win():
         return True
     else:
         return False
-
-control = 0
-
-while control == 0:
-    if win() == False:
-        print ("syntax_err0r...")
-    elif win() == True:
-        control = 1
