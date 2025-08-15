@@ -58,7 +58,6 @@ def zipcrack():
     esc3 = str(input('include special characters?[y][n] '))
     cs = int(input('estimated password length?: '))
     arq = str(input('zip path: '))
-
     senha = ''
     if esc1 == 'y':
         senha += string.ascii_letters
@@ -69,7 +68,6 @@ def zipcrack():
     if not senha:
         print('nothing selected, ending...')
         exit()
-
     def ext(sen):
         try:
             with pyzipper.AESZipFile(arq, 'r') as zp:
@@ -77,11 +75,9 @@ def zipcrack():
             return (sen, True)
         except:
             return (sen, False)
-
     def res():
         for sla in product(senha, repeat=cs):
             yield ''.join(sla)
-
     if __name__ == "__main__":
         with Pool(cpu_count()) as pool:
             for comb, sus in pool.imap_unordered(ext, res(), chunksize=500):
@@ -95,9 +91,7 @@ def pass_gen():
     q1 = str(input('include special character? [y][n]'))
     q2 = str(input('include numbers?[y][n]'))
     q3 = str(input('include uppercase letters?[y][n]'))
-
     senhag = []
-
     senhap = string.ascii_lowercase
     if q1 == 'y':
         senhap += string.punctuation
@@ -146,26 +140,20 @@ def win():
     rec = input("")
     if rec == "zipbreaker":
         print("""
-              #######################
-              #     Z1PBR34K3R       #
-              #######################
+              [☠] ZIPBREAKER 🔓 [☠]
               """)
         zipcrack()
         return True
     elif rec == "passgen":
         print("""
-            #######################
-            #    P4SSG3N3R4T0R    #
-            #######################
+            [🔑] PASS GENERATOR ☠ [🔑]
             """)
         pass_gen()
         return True
     elif rec == "wifiblackout":
         print("""
-            ######################
-            #    WIFI-BLACKOUT   #
-            ######################
-""")        
+            [📡] WIFI BLACKOUT ☠ [📡]
+              """)        
         wifi_blackout()
         return True
     else:
