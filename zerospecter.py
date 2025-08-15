@@ -9,6 +9,7 @@ import os
 import argparse
 from scapy.all import RadioTap, Dot11, Dot11Deauth, sendp
 
+#printar a logo bonitinha
 ascii_zero = (r"""
        █████████████████
      ██▒▒             ██▒▒
@@ -23,13 +24,11 @@ ascii_zero = (r"""
 |      Penetration & Exploit            |
 +=======================================+
 """)
-
 def slow_print(text, delay=0.002):
     for char in text:
         sys.stdout.write(char)
         sys.stdout.flush()
         time.sleep(delay)
-
 def loading_bar(duration=2, length=30):
     sys.stdout.write("[")
     sys.stdout.flush()
@@ -38,7 +37,6 @@ def loading_bar(duration=2, length=30):
         sys.stdout.write("█")
         sys.stdout.flush()
     sys.stdout.write("]\n")
-
 def banner():
     os.system("cls" if os.name == "nt" else "clear")
     slow_print(ascii_zero, 0.0008)
@@ -50,10 +48,10 @@ def banner():
     loading_bar()
     time.sleep(0.3)
     slow_print("Ready.\n", 0.02)
-
 if __name__ == "__main__":
     banner()
 
+#features
 def zipcrack():
     esc1 = str((input('include letters?[y][n] ')))
     esc2 = str(input('include numbers? [y][n] '))
@@ -143,6 +141,7 @@ def wifi_blackout():
     if __name__ == "__main__":
         main()
 
+#execução
 def win():
     rec = input("")
     if rec == "zipbreaker":
@@ -171,6 +170,5 @@ def win():
         return True
     else:
         return False
-
 while win() == False:
     win()
