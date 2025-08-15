@@ -106,8 +106,9 @@ def pass_gen():
     if q3 == 'y':
         senhap += string.ascii_uppercase
 
-    for i in range (cs):
-        senhag = random.choice(senhap)
+    for _ in range (cs):
+        passw = random.choice(senhap)
+        senhag.append(passw)
     print ("".join(senhag))
 
 def win():
@@ -133,3 +134,6 @@ def win():
         return True
     else:
         return False
+
+while win() == False:
+    win()
