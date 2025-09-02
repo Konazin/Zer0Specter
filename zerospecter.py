@@ -53,54 +53,65 @@ if __name__ == "__main__":
 
 #features
 def zipcrack():
-    esc1 = str((input('include letters?[y][n] ')))
-    esc2 = str(input('include numbers? [y][n] '))
-    esc3 = str(input('include special characters?[y][n] '))
-    cs = int(input('estimated password length?: '))
-    arq = str(input('zip path: '))
+    def args():
+        argumentos = argparse.ArgumentParser(description="zipcracker")
+        argumentos.add_argument("-l", "--letters", dest="esc1", help="add letters on password")
+        argumentos.add_argument("-n", "--numbers", dest="esc2", help="add numbers")
+        argumentos.add_argument("-sc", "--specialcharacters", dest="esc3", help="add specialcharacters")
+        argumentos.add_argument("-s", "--size", dest="cs", help="estimated password length")
+        argumentos.add_argument("-p", "--path", dest="arq", help="dir path")
+        return argumentos.parse_args(sys.argv)
     senha = ''
-    if esc1 == 'y':
-        senha += string.ascii_letters
-    if esc2 == 'y':
-        senha += string.digits
-    if esc3 == 'y':
-        senha += string.punctuation
-    if not senha:
-        print('nothing selected, ending...')
-        exit()
-    def ext(sen):
+    def escolhas(argu):
+        if argu.esc1 == 'y':
+            senha += string.ascii_letters
+        if argu.esc2 == 'y':
+            senha += string.digits
+        if argu.esc3 == 'y':
+            senha += string.punctuation
+        if not senha:
+            print('nothing selected, ending...')
+            exit()
+        return senha
+    def ext(sen, arq):
         try:
             with pyzipper.AESZipFile(arq, 'r') as zp:
                 zp.extractall(pwd=sen.encode())
             return (sen, True)
         except:
             return (sen, False)
-    def res():
-        for sla in product(senha, repeat=cs):
+    def res(argu):
+        for sla in product(senha, repeat=argu.cs):
             yield ''.join(sla)
     if __name__ == "__main__":
+        argu = args()
+        escolhas(argu)
         with Pool(cpu_count()) as pool:
-            for comb, sus in pool.imap_unordered(ext, res(), chunksize=500):
+            for comb, sus in pool.imap_unordered(ext, res(argu), chunksize=500):
                 print(f'Testing: {comb}')
                 if sus:
                     print(f'broken with: {comb}')
                     pool.terminate()
                     break
 def pass_gen():
-    cs = int(input('add the number of character for the password: '))
-    q1 = str(input('include special character? [y][n]'))
-    q2 = str(input('include numbers?[y][n]'))
-    q3 = str(input('include uppercase letters?[y][n]'))
+    def arguments():
+        parser = argparse.ArgumentParser(description="pass generator")
+        parser.add_argument("-nc", "--numberchar", dest="cs", help="number of characters you password must have")
+        parser.add_argument("-p", "--punctuation", dest="q1", help="did it have special character?")
+        parser.add_argument("-n", "--numbers", dest="q2", help="did it have numbers?")
+        parser.add_argument("-up", "--uppercase", dest="q3")
+        return parser.parse_args(sys.argv)
+    argum = arguments()
     senhag = []
     senhap = string.ascii_lowercase
-    if q1 == 'y':
+    if argum.q1 == 'y':
         senhap += string.punctuation
-    if q2 == 'y':
+    if argum.q2 == 'y':
         senhap += string.digits
-    if q3 == 'y':
+    if argum.q3 == 'y':
         senhap += string.ascii_uppercase
 
-    for _ in range (cs):
+    for _ in range (argum.cs):
         passw = random.choice(senhap)
         senhag.append(passw)
     print ("".join(senhag))
@@ -136,27 +147,18 @@ def wifi_blackout():
         main()
 
 #execução
-def win():
-    rec = input("")
-    if rec == "zipbreaker":
-        print("""
-              [☠] ZIPBREAKER 🔓 [☠]
-              """)
-        zipcrack()
-        return True
-    elif rec == "passgen":
-        print("""
-            [🔑] PASS GENERATOR ☠ [🔑]
-            """)
-        pass_gen()
-        return True
-    elif rec == "wifiblackout":
-        print("""
-            [📡] WIFI BLACKOUT ☠ [📡]
-              """)        
-        wifi_blackout()
-        return True
-    else:
-        return False
-while win() == False:
-    win()
+def main():
+    while True:
+        userin = input("[Zer0Specter] > ").strip().lower()
+        if userin == "zipcrack":
+            zipcrack()
+        if userin == "passgen":
+            pass_gen()
+        if userin == "wifiblackout":
+            wifi_blackout()
+        if userin == "quit" or "exit":
+            exit()
+        if userin == "help":
+            print("""""")
+if __name__ == "__main__" :
+    main()
