@@ -123,8 +123,7 @@ def wifi_blackout():
         parser.add_argument("-c", "--client", dest="bssid_client", help="MAC from client")
         parser.add_argument("-n", "--count", dest="count", type=int, default=10, help="Packets count(0 for infinite)")
         parser.add_argument("--interval", dest="interval", type=float, default=0.1, help="Time between packets")
-        options = parser.parse_args()
-        return options
+        return parser.parse_args(sys.argv)
     def BDP(ap_mac, client_mac):
         packet = (
             RadioTap()/
@@ -149,16 +148,31 @@ def wifi_blackout():
 #execução
 def main():
     while True:
-        userin = input("[Zer0Specter] > ").strip().lower()
+        userin = input("[Zer0Specter] > ").lower()
         if userin == "zipcrack":
-            zipcrack()
+            try:
+                zipcrack()
+            except argparse._UNRECOGNIZED_ARGS_ATTR:
+                print("argument not recognized")
+            except argparse.ArgumentError:
+                print("sintaxe error")
         if userin == "passgen":
-            pass_gen()
+            try:
+                pass_gen()
+            except argparse._UNRECOGNIZED_ARGS_ATTR:
+                print("argument not recognized")
+            except argparse.ArgumentError:
+                print("sintaxe error")
         if userin == "wifiblackout":
-            wifi_blackout()
-        if userin == "quit" or "exit":
+            try:
+                wifi_blackout()
+            except argparse._UNRECOGNIZED_ARGS_ATTR:
+                print("argument not recognized")
+            except argparse.ArgumentError:
+                print("sintaxe error")
+        if userin in ["quit", "exit"]:
+            print("ending...")
+            time.sleep(2)
             exit()
-        if userin == "help":
-            print("""""")
 if __name__ == "__main__" :
     main()
