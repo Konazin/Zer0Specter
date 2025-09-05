@@ -52,7 +52,7 @@ if __name__ == "__main__":
     banner()
 
 #features
-def zipcrack():
+def zipcrack(argus):
     def args():
         argumentos = argparse.ArgumentParser(description="zipcracker")
         argumentos.add_argument("-l", "--letters", dest="esc1", help="add letters on password")
@@ -60,7 +60,7 @@ def zipcrack():
         argumentos.add_argument("-sc", "--specialcharacters", dest="esc3", help="add specialcharacters")
         argumentos.add_argument("-s", "--size", dest="cs", help="estimated password length")
         argumentos.add_argument("-p", "--path", dest="arq", help="dir path")
-        return argumentos.parse_args(sys.argv)
+        return argumentos.parse_args(argus)
     senha = ''
     def escolhas(argu):
         if argu.esc1 == 'y':
@@ -93,14 +93,14 @@ def zipcrack():
                     print(f'broken with: {comb}')
                     pool.terminate()
                     break
-def pass_gen():
+def pass_gen(argus):
     def arguments():
         parser = argparse.ArgumentParser(description="pass generator")
-        parser.add_argument("-nc", "--numberchar", dest="cs", help="number of characters you password must have")
+        parser.add_argument("-nc", "--numberchar", dest="cs", type=int, help="number of characters you password must have")
         parser.add_argument("-p", "--punctuation", dest="q1", help="did it have special character?")
         parser.add_argument("-n", "--numbers", dest="q2", help="did it have numbers?")
         parser.add_argument("-up", "--uppercase", dest="q3")
-        return parser.parse_args(sys.argv)
+        return parser.parse_args(argus)
     argum = arguments()
     senhag = []
     senhap = string.ascii_lowercase
@@ -115,7 +115,7 @@ def pass_gen():
         passw = random.choice(senhap)
         senhag.append(passw)
     print ("".join(senhag))
-def wifi_blackout():
+def wifi_blackout(argus):
     def args():
         parser = argparse.ArgumentParser(description="WIFI Attack Deauth")
         parser.add_argument("-i", "--interface", dest="interface", help="WIFI interface")
@@ -123,7 +123,7 @@ def wifi_blackout():
         parser.add_argument("-c", "--client", dest="bssid_client", help="MAC from client")
         parser.add_argument("-n", "--count", dest="count", type=int, default=10, help="Packets count(0 for infinite)")
         parser.add_argument("--interval", dest="interval", type=float, default=0.1, help="Time between packets")
-        return parser.parse_args(sys.argv)
+        return parser.parse_args(argus)
     def BDP(ap_mac, client_mac):
         packet = (
             RadioTap()/
@@ -149,28 +149,31 @@ def wifi_blackout():
 def main():
     while True:
         userin = input("[Zer0Specter] > ").lower()
-        if userin == "zipcrack":
+        partes = userin.split()
+        feature = partes[0]
+        argumentos = partes[1:]
+        if feature == "zipcrack":
             try:
-                zipcrack()
-            except argparse._UNRECOGNIZED_ARGS_ATTR:
+                zipcrack(argumentos)
+            except SystemExit:
                 print("argument not recognized")
             except argparse.ArgumentError:
                 print("sintaxe error")
-        if userin == "passgen":
+        if feature == "passgen":
             try:
-                pass_gen()
-            except argparse._UNRECOGNIZED_ARGS_ATTR:
+                pass_gen(argumentos)
+            except SystemExit:
                 print("argument not recognized")
             except argparse.ArgumentError:
                 print("sintaxe error")
-        if userin == "wifiblackout":
+        if feature == "wifiblackout":
             try:
-                wifi_blackout()
-            except argparse._UNRECOGNIZED_ARGS_ATTR:
+                wifi_blackout(argumentos)
+            except SystemExit:
                 print("argument not recognized")
             except argparse.ArgumentError:
                 print("sintaxe error")
-        if userin in ["quit", "exit"]:
+        if feature in ["quit", "exit"]:
             print("ending...")
             time.sleep(2)
             exit()
