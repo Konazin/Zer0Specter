@@ -146,6 +146,19 @@ def wifi_blackout(argus):
         main()
 
 #execução
+FEATURES = {
+    "zipcrack": (zipcrack, "Crack password-protected zip files"),
+    "passgen": (pass_gen, "Generate random secure passwords"),
+    "wifiblackout": (wifi_blackout, "A DoS tool for network attacks")
+}
+
+def show_help():
+    print("\nAvailable commands:")
+    for feat, (_, desc) in FEATURES.items():
+        print(f"  {feat:<12} {desc}")
+    print("  help         Show this message")
+    print("  quit/exit    Exit the program\n")
+
 def main():
     while True:
         userin = input("[Zer0Specter] > ").lower()
@@ -156,26 +169,28 @@ def main():
             try:
                 zipcrack(argumentos)
             except SystemExit:
-                print("argument not recognized")
+                print("Argument not recognized. Use '--help' for this command.")
             except argparse.ArgumentError:
                 print("sintaxe error")
         if feature == "passgen":
             try:
                 pass_gen(argumentos)
             except SystemExit:
-                print("argument not recognized")
+                print("Argument not recognized. Use '--help' for this command.")
             except argparse.ArgumentError:
                 print("sintaxe error")
         if feature == "wifiblackout":
             try:
                 wifi_blackout(argumentos)
             except SystemExit:
-                print("argument not recognized")
+                print("Argument not recognized. Use '--help' for this command.")
             except argparse.ArgumentError:
                 print("sintaxe error")
         if feature in ["quit", "exit"]:
             print("ending...")
             time.sleep(2)
             exit()
+        elif feature == "help":
+            show_help()
 if __name__ == "__main__" :
     main()
