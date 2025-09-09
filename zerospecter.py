@@ -4,25 +4,34 @@ import pyzipper
 from itertools import product
 from multiprocessing import Pool, cpu_count
 import sys
+import requests
 import time
 import os
+import readline
 import argparse
 from scapy.all import RadioTap, Dot11, Dot11Deauth, sendp
 
 #printar a logo bonitinha
 ascii_zero = (r"""
-       █████████████████
-     ██▒▒             ██▒▒
-    ██▒▒    ██████     ██▒▒
-   ██▒▒   ██   █  ██    ██▒▒
-   ██▒▒   ██  █   ██    ██▒▒
-    ██▒▒    ██████     ██▒▒
-     ██▒▒             ██▒▒
-       █████████████████
-+=======================================+
-|            ZER0SPECTER                |
-|      Penetration & Exploit            |
-+=======================================+
+ ________                   __                     
+/\_____  \                /'__`\                   
+\/____//'/'     __  _ __ /\ \/\ \                  
+     //'/'    /'__`/\`'__\ \ \ \ \                 
+    //'/'___ /\  __\ \ \/ \ \ \_\ \                
+    /\_______\ \____\ \_\  \ \____/                
+ ____/_______/\/____/\/_/   \/___/                 
+/\  _`\                       /\ \__               
+\ \,\L\_\  _____     __    ___\ \ ,_\    __  _ __  
+ \/_\__ \ /\ '__`\ /'__`\ /'___\ \ \/  /'__`/\`'__\
+   /\ \L\ \ \ \L\ /\  __//\ \__/\ \ \_/\  __\ \ \/ 
+   \ `\____\ \ ,__\ \____\ \____\\ \__\ \____\ \_\ 
+    \/_____/\ \ \/ \/____/\/____/ \/__/\/____/\/_/ 
+             \ \_\                                 
+              \/_/                                                                 
++----------------------------------+
+|           PENETRATION &          |
+|             EXPLOIT              |
++----------------------------------+              
 """)
 def slow_print(text, delay=0.002):
     for char in text:
@@ -144,6 +153,40 @@ def wifi_blackout(argus):
         packetsend = (pkt, options.interface, options.count, options.interval)
     if __name__ == "__main__":
         main()
+def ip_locater(argus):
+    def arguments():
+        parser = argparse.ArgumentParser(description="ip locator")
+        parser.add_argument("-ip", type=str,help="ip from target or let empty for yours")
+        args = parser.parse_args()
+        return args.ip
+    def get_ip(ip):
+        try:
+            url = f"https://ipwho.is/{ip[1]}"
+            print(f"[DEBUG] URL gerada: {url}")
+            resposta = requests.get(url)
+            if resposta.status_code == 200:
+                return resposta.json()
+            else:
+                return {"error": f"Falha na requisição, status: {resposta.status_code}"}
+        except Exception as e:
+            return {"error": str(e)}
+    def main():
+        arguments()
+        result = get_ip(argus)
+        if "error" in result:
+            print(f"Erro: {result['error']}")
+        else:
+            print("""-----result-----""")
+            print(f"IP: {result.get('ip')}")
+            print(f"Country: {result.get('country')}")
+            print(f"Region: {result.get('region')}")
+            print(f"City: {result.get('city')}")
+            print(f"Providor (ISP): {result.get('isp')}")
+            print(f"Type: {result.get('type')}")
+            print(f"Latitude: {result.get('latitude')}")
+            print(f"Longitude: {result.get('longitude')}")
+    if __name__ == "__main__":
+        main()
 
 #execução
 FEATURES = {
@@ -186,10 +229,19 @@ def main():
                 print("Argument not recognized. Use '--help' for this command.")
             except argparse.ArgumentError:
                 print("sintaxe error")
+        if feature == "iplocator":
+            try:
+                ip_locater(argumentos)
+            except SystemExit:
+                print("Argument not recognized. Use '--help' for this command.")
+            except argparse.ArgumentError:
+                print("sintaxe error")
         if feature in ["quit", "exit"]:
             print("ending...")
             time.sleep(2)
             exit()
+        if feature == "clear":
+            os.system('clear')
         elif feature == "help":
             show_help()
 if __name__ == "__main__" :
