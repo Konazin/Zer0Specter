@@ -1,36 +1,49 @@
-```text  
-       █████████████████
-     ██▒▒             ██▒▒
-    ██▒▒    ██████     ██▒▒
-   ██▒▒   ██   █  ██    ██▒▒
-   ██▒▒   ██  █   ██    ██▒▒
-    ██▒▒    ██████     ██▒▒
-     ██▒▒             ██▒▒
-       █████████████████
-   #########################
-   #      ZER0SPECTER      #
-   #########################
+```
+      _         
+    / /\        
+   / /  \       
+  / / /\ \      
+ / / /\ \ \     
+/_/ /  \ \ \    
+\ \ \   \ \ \   
+ \ \ \   \ \ \  
+  \ \ \___\ \ \ 
+   \ \/____\ \ \
+    \_________\/
+```
+# Zer0Specter
+ZeroSpecter is a Cybersecurity tool for pentesting and multi-use features you can use for whatever you want.
+It is under development for one person and a rookie in security and programming world. 
+## Requirements and Donloading
+#random  \
+#string  \
+#pyzipper  \
+#itertools \
+#multiprocessing \
+#sys \
+#requests  \
+#time  \
+#os  \
+#prompt_toolkit  \
+#readline  \
+#argparse \
+To run it you must have install those librarys.
+You can install all of it using:
+```bash
+  pip install pyzipper prompt_toolkit scapy selenium requests
+```
+## Tools
+- Password-generator
+- DoS attack tool
+- Zip-Cracker
+- IP-Locator
 
-**zer0specter** is a project crafted by an aspiring developer venturing into the
-realms of **programming** and **cybersecurity**.  
-This toolkit centers around **password cracking** techniques and includes
-**several additional utilities** that serve as experimental and practical tools for exploration.
+## Objectives and vision for the future
+I planning to add some new features to improve scanning and attack factor, also improve the terminal system and import it for Windows(it can only run on linux).
 
-✨ **Highlights:**
-- Focused on hands-on learning and skill enhancement  
-- Portfolio-ready with real, functional examples  
-- Combines ethical hacking concepts with clean code design  
-- A stepping stone for deeper cybersecurity research  
+## Feedback and bughunting
+If you find a bug or a issue, have some advice and improvement idea you can contact me on github.
+## Author
 
-📜 **Purpose & Vision**  
-The project’s intent is purely **educational** — built to foster learning, improve technical skills,
-and serve as a showcase of capabilities.  
-It represents a personal journey into security research, exploring both **offensive** and
-**defensive** aspects of the field.
+- [Kona](https://github.com/Konazin)
 
-⚠ **Ethical Use Disclaimer**  
-This project is strictly for **institutional, research, and educational** purposes.  
-The author does **not** endorse or support illegal or malicious activities.  
-By using this tool, you agree to act responsibly and ethically.
-
----
