@@ -192,7 +192,8 @@ def ip_locater(argus):
 FEATURES = {
     "zipcrack": (zipcrack, "Crack password-protected zip files"),
     "passgen": (pass_gen, "Generate random secure passwords"),
-    "wifiblackout": (wifi_blackout, "A DoS tool for network attacks")
+    "wifiblackout": (wifi_blackout, "A DoS tool for network attacks"),
+    "iplocator": (ip_locater, "A Ip locator/finder")
 }
 
 def show_help():
