@@ -7,9 +7,12 @@ import sys
 import requests
 import time
 import os
+import prompt_toolkit
 import readline
 import argparse
 from scapy.all import RadioTap, Dot11, Dot11Deauth, sendp
+import selenium
+from functools import partial
 
 #printar a logo bonitinha
 ascii_zero = (r"""
@@ -60,6 +63,16 @@ def banner():
 if __name__ == "__main__":
     banner()
 
+#funcoes auxiliares
+def worker_try_password(args_tuple):
+    sen, arq = args_tuple  # desempacota os argumentos
+    try:
+        with pyzipper.AESZipFile(arq, 'r') as zp:
+            zp.extractall(pwd=sen.encode())
+        return (sen, True)
+    except:
+        return (sen, False)
+
 #features
 def zipcrack(argus):
     def args():
@@ -67,11 +80,12 @@ def zipcrack(argus):
         argumentos.add_argument("-l", "--letters", dest="esc1", help="add letters on password")
         argumentos.add_argument("-n", "--numbers", dest="esc2", help="add numbers")
         argumentos.add_argument("-sc", "--specialcharacters", dest="esc3", help="add specialcharacters")
-        argumentos.add_argument("-s", "--size", dest="cs", help="estimated password length")
+        argumentos.add_argument("-s", "--size", dest="cs", type=int, help="estimated password length")
         argumentos.add_argument("-p", "--path", dest="arq", help="dir path")
         return argumentos.parse_args(argus)
-    senha = ''
+    
     def escolhas(argu):
+        senha = ""
         if argu.esc1 == 'y':
             senha += string.ascii_letters
         if argu.esc2 == 'y':
@@ -82,26 +96,24 @@ def zipcrack(argus):
             print('nothing selected, ending...')
             exit()
         return senha
-    def ext(sen, arq):
-        try:
-            with pyzipper.AESZipFile(arq, 'r') as zp:
-                zp.extractall(pwd=sen.encode())
-            return (sen, True)
-        except:
-            return (sen, False)
-    def res(argu):
+    
+    argu = args()
+    senha = escolhas(argu)
+    
+    def generate_combinations():
         for sla in product(senha, repeat=argu.cs):
-            yield ''.join(sla)
-    if __name__ == "__main__":
-        argu = args()
-        escolhas(argu)
-        with Pool(cpu_count()) as pool:
-            for comb, sus in pool.imap_unordered(ext, res(argu), chunksize=500):
-                print(f'Testing: {comb}')
-                if sus:
-                    print(f'broken with: {comb}')
-                    pool.terminate()
-                    break
+            yield (''.join(sla), argu.arq)
+
+    with Pool(cpu_count()) as pool:
+        total = 0
+        for comb, sus in pool.imap_unordered(worker_try_password, generate_combinations(), chunksize=500):
+            total += 1
+            print(f'[{total}] Testing: {comb}')
+            if sus:
+                print(f'\n✅ Senha encontrada: {comb}')
+                pool.terminate()
+                return comb
+
 def pass_gen(argus):
     def arguments():
         parser = argparse.ArgumentParser(description="pass generator")
@@ -162,7 +174,6 @@ def ip_locater(argus):
     def get_ip(ip):
         try:
             url = f"https://ipwho.is/{ip[1]}"
-            print(f"[DEBUG] URL gerada: {url}")
             resposta = requests.get(url)
             if resposta.status_code == 200:
                 return resposta.json()
