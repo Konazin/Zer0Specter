@@ -1,0 +1,5 @@
+pyzipper
+scapy
+requests
+readline
+prompt_toolkit
