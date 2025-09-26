@@ -38,8 +38,8 @@ You’ll need **Python 3.7+** and the following packages:
 
 ## Supported Platforms
 
-- **Linux - Fully support
-- **Windows - partial support — some features like Wi-Fi attacks may not work
+- 🐧Linux - Fully support
+- 🪟Windows - partial support — some features like Wi-Fi attacks may not work
 
 ---
 
