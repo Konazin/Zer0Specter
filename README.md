@@ -50,7 +50,7 @@ Please open an [Issue](https://github.com/Konazin/Zer0Specter/issues)  or contac
 
 ```bash
 pip install -r requirements.txt
-
+```
 ## Author
 
 - [Kona](https://github.com/Konazin)
