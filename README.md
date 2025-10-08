@@ -27,6 +27,7 @@ Zer0Specter is a modular command-line framework built for learning and practical
 - **Wi-Fi Deauth Attack**: Perform deauthentication (DoS) attacks on Wi-Fi networks *(requires monitor mode)*.
 - **IP Geolocation**: Retrieve geographic and ISP info for any IP address.
 - **Packet Sniffer**: Real-time network traffic inspection with a clean, `tcpdump`-style output.
+- **Port scanner**: A port scanner by brute force with banner detection.
 
 ---
 
@@ -38,8 +39,8 @@ You’ll need **Python 3.7+** and the following packages:
 
 ## Supported Platforms
 
-- **Linux - Fully support
-- **Windows - partial support — some features like Wi-Fi attacks may not work
+- 🐧Linux - Fully support
+- 🪟Windows - partial support — some features like Wi-Fi attacks may not work
 
 ---
 
@@ -50,7 +51,7 @@ Please open an [Issue](https://github.com/Konazin/Zer0Specter/issues)  or contac
 
 ```bash
 pip install -r requirements.txt
-
+```
 ## Author
 
 - [Kona](https://github.com/Konazin)
