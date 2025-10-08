@@ -27,6 +27,7 @@ Zer0Specter is a modular command-line framework built for learning and practical
 - **Wi-Fi Deauth Attack**: Perform deauthentication (DoS) attacks on Wi-Fi networks *(requires monitor mode)*.
 - **IP Geolocation**: Retrieve geographic and ISP info for any IP address.
 - **Packet Sniffer**: Real-time network traffic inspection with a clean, `tcpdump`-style output.
+- **Port scanner**: A port scanner by brute force with banner detection.
 
 ---
 
