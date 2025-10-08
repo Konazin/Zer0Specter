@@ -1,5 +1,6 @@
 import random
 import string
+import socket
 import pyzipper
 from itertools import product
 from multiprocessing import Pool, cpu_count
@@ -70,10 +71,10 @@ def worker_try_password(args_tuple):
     except:
         return (password, False)
 
-# --- FEATURE: Friendly Packet Sniffer ---
+# --- FEATURES ---
 def sniffer(argus):
     def args():
-        parser = argparse.ArgumentParser(description="Friendly packet sniffer (like tcpdump)")
+        parser = argparse.ArgumentParser(description="Packet sniffer (like tcpdump)")
         parser.add_argument("-i", "--interface", dest="interface", help="Network interface to sniff on", default=None)
         parser.add_argument("-si", "--showinterfaces", dest="sinterfaces", action="store_true", help="List available network interfaces")
         return parser.parse_args(argus)
@@ -91,7 +92,7 @@ def sniffer(argus):
         print("    Use --showinterfaces to list available interfaces.")
         return
 
-    print(f"\n[+] Starting friendly sniffer on interface: {args_parsed.interface}")
+    print(f"\n[+] Starting sniffer on interface: {args_parsed.interface}")
     print("[+] Press Ctrl+C to stop.\n")
     print(f"{'TIME':<10} {'PROTOCOL':<8} {'SOURCE':<22} {'DESTINATION':<22} {'INFO'}")
     print("-" * 80)
@@ -160,7 +161,6 @@ def sniffer(argus):
         print("\n[!] Permission denied. Please run as root/Administrator.")
     except KeyboardInterrupt:
         print("\n\n[+] Sniffer stopped by user.")
-# --- FEATURE: ZIP Password Cracker ---
 def zipcrack(argus):
     parser = argparse.ArgumentParser(description="Crack password-protected ZIP files")
     parser.add_argument("-l", "--letters", dest="use_letters", help="Include letters (y/n)", default='n')
@@ -197,7 +197,6 @@ def zipcrack(argus):
                 pool.terminate()
                 return password
     print("[INFO] Password not found.")
-# --- FEATURE: Password Generator ---
 def pass_gen(argus):
     parser = argparse.ArgumentParser(description="Generate a random secure password")
     parser.add_argument("-nc", "--numberchar", dest="length", type=int, required=True, help="Password length")
@@ -216,7 +215,6 @@ def pass_gen(argus):
 
     password = ''.join(random.choice(charset) for _ in range(args.length))
     print(password)
-# --- FEATURE: Wi-Fi Deauthentication Attack ---
 def wifi_blackout(argus):
     parser = argparse.ArgumentParser(description="Wi-Fi deauthentication (DoS) attack")
     parser.add_argument("-i", "--interface", dest="interface", required=True, help="Wireless interface (in monitor mode)")
@@ -242,7 +240,6 @@ def wifi_blackout(argus):
     else:
         print(f"[INFO] Sending {args.count} deauthentication packets...")
         sendp(packet, iface=args.interface, count=args.count, inter=args.interval, verbose=True)
-# --- FEATURE: IP Geolocation ---
 def ip_locater(argus):
     parser = argparse.ArgumentParser(description="Geolocate an IP address")
     parser.add_argument("-ip", type=str, nargs='?', default=None, help="Target IP address (leave empty for your own IP)")
@@ -270,6 +267,71 @@ def ip_locater(argus):
             print(f"[ERROR] Request failed. Status code: {response.status_code}")
     except Exception as e:
         print(f"[ERROR] Exception occurred: {str(e)}")
+def portscanner(argus):
+    def arguments():
+        p = argparse.ArgumentParser(description="port scanner / banner grabber")
+        p.add_argument("-t", "--target", help="IPv4 or hostname of target", dest="target", required=True)
+        p.add_argument("-s", "--start", help="start port", dest="start", type=int, default=1)
+        p.add_argument("-e", "--end", help="end port", dest="end", type=int, default=2048)
+        p.add_argument("-d", "--delay", help="socket timeout in seconds", dest="timeout", type=float, default=0.2)
+        return p.parse_args(argus)
+
+    def scan(host, port, timeout):
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(timeout)
+            s.connect((host, port))
+            try:
+                data = s.recv(1024)
+                if data:
+                    return data.decode('utf-8', errors="replace").strip()
+                try:
+                    s.sendall(b"HEAD / HTTP/1.0\r\nHost: %s\r\n\r\n" % host.encode())
+                    data = s.recv(2048)
+                    if data:
+                        text = data.decode('utf-8', errors="replace").splitlines()
+                        for line in text:
+                            if line.lower().startswith("server:"):
+                                return line.strip()
+                        return text[0].strip() if text else None
+                except Exception:
+                    pass
+            finally:
+                s.close()
+        except Exception:
+            return None
+
+    def scanner(host, start, end, timeout):
+        if start < 1 or end > 65535 or start > end:
+            print("[!] Invalid port interval")
+            return
+
+        open_ports = []
+        print(f"[*] Scanning {host} ports {start}..{end} (timeout={timeout}s)")
+        for port in range(start, end + 1):
+            banner = scan(host, port, timeout)
+            if banner is not None:
+                print(f"[+] OPEN {port:5d}  - banner: {banner}")
+                open_ports.append((port, banner))
+
+        if not open_ports:
+            print("[*] NO OPEN PORTS FOUND")
+        else:
+            print("\n[*] Summary:")
+            for port, banner in sorted(open_ports):
+                print(f" - {port:5d} : {banner}")
+
+    def main():
+        args = arguments()
+        try:
+            host_ip = socket.gethostbyname(args.target)
+        except Exception as e:
+            print(f"[!] Erro ao resolver host '{args.target}': {e}")
+            sys.exit(1)
+
+        scanner(host_ip, args.start, args.end, args.timeout)
+    
+    main()
 
 # --- COMMAND REGISTRY ---
 FEATURES = {
@@ -277,7 +339,8 @@ FEATURES = {
     "passgen": (pass_gen, "Generate random secure passwords"),
     "wifiblackout": (wifi_blackout, "Perform Wi-Fi deauthentication (DoS) attacks"),
     "iplocator": (ip_locater, "Geolocate an IP address"),
-    "sniffer": (sniffer, "Capture and display network packets in a friendly format"),
+    "sniffer": (sniffer, "Capture and display network packets"),
+    "portscanner": (portscanner, "Check open ports by bruteforce")
 }
 def show_help():
     print("\nAvailable commands:")
