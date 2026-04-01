@@ -164,7 +164,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Author
 
-**Konazin** - [GitHub](https://github.com/konazin) [Portifolio](https://konazin.github.io/)
+**Konazin** - [GitHub](https://github.com/konazin) - [Portifolio](https://konazin.github.io/)
 
 ## Acknowledgments
 
