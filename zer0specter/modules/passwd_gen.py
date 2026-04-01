@@ -12,11 +12,11 @@ def password_generator(arguments):
     args = parser.parse_args(arguments)
 
     charset = string.ascii_lowercase
-    if args.use_punct == 'y':
+    if (args.use_punct).lower() == 'y':
         charset += string.punctuation
-    if args.use_nums == 'y':
+    if (args.use_nums).lower() == 'y':
         charset += string.digits
-    if args.use_upper == 'y':
+    if (args.use_upper).lower() == 'y':
         charset += string.ascii_uppercase
 
     password = ''.join(random.choice(charset) for _ in range(args.length))
