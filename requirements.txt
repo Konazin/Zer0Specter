@@ -1,5 +1,5 @@
-pyzipper
-scapy
-requests
-readline
-prompt_toolkit
+rich>=13.0.0
+requests>=2.25.0
+scapy>=2.4.5
+pycryptodomex>=3.10.0
+pyzipper>=0.3.6

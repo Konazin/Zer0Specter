@@ -1,0 +1,16 @@
+rich>=13.0.0
+requests>=2.25.0
+scapy>=2.4.5
+pycryptodomex>=3.10.0
+pyzipper>=0.3.6
+
+[dev]
+pytest>=7.0.0
+pytest-cov>=4.0.0
+black>=22.0.0
+flake8>=4.0.0
+mypy>=0.950
+isort>=5.10.0
+
+[gui]
+PyQt6>=6.4.0

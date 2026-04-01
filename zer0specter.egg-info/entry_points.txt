@@ -1,0 +1,2 @@
+[console_scripts]
+zer0specter = zer0specter.cli:main
