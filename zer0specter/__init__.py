@@ -1,6 +1,6 @@
 """ZeroSpecter - A comprehensive penetration testing toolkit."""
 
-__version__ = "2.0.1"
+__version__ = "2.1.2"
 __author__ = "Konazin"
 __description__ = "A comprehensive penetration testing toolkit for authorized security assessments"
 __license__ = "MIT"
