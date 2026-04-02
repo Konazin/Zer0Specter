@@ -35,7 +35,8 @@ MODULES_LIST = [
     ("wifiattack",  "Perform Wi-Fi deauthentication (DoS) attacks"),
     ("iplocator",  "Geolocate an IP address"),
     ("sniffer",  "Capture and display network packets"),
-    ("portscanner" , "Check open ports by bruteforce")
+    ("portscanner" , "Check open ports by bruteforce"),
+    ("GUI", "Launch the graphical interface"),
 ]
 
 # ── Helpers de exibição ───────────────────────────────────────────────────────

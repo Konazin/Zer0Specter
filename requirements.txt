@@ -3,3 +3,4 @@ requests>=2.25.0
 scapy>=2.4.5
 pycryptodomex>=3.10.0
 pyzipper>=0.3.6
+pyreadline3>=3.4.0

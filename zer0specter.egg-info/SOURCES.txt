@@ -13,12 +13,14 @@ zer0specter.egg-info/requires.txt
 zer0specter.egg-info/top_level.txt
 zer0specter/gui/__init__.py
 zer0specter/gui/app.py
+zer0specter/modules/__init__.py
 zer0specter/modules/ip_geo.py
 zer0specter/modules/passwd_gen.py
 zer0specter/modules/port_scanner.py
 zer0specter/modules/sniffer.py
 zer0specter/modules/wifi_attack.py
 zer0specter/modules/zip_cracker.py
+zer0specter/utils/__init__.py
 zer0specter/utils/banner.py
 zer0specter/utils/logger.py
 zer0specter/utils/validators.py

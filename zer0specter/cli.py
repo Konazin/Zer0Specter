@@ -19,6 +19,7 @@ try:
     from zer0specter.modules.port_scanner import portscanner
     from zer0specter.modules.sniffer import sniffer
     from zer0specter.modules.wifi_attack import wifi_attack
+    from zer0specter.gui.app import launch as gui
     from zer0specter.utils.banner import show_banner
 except ImportError as error:
     print(f"[#] Error importing modules: {error}")
@@ -32,6 +33,7 @@ FEATURES = {
     "iplocator": (ip_locator, "Geolocate an IP address"),
     "sniffer": (sniffer, "Capture and display network packets"),
     "portscanner": (portscanner, "Check open ports by bruteforce"),
+    "gui": (gui, "Launch the graphical user interface")
 }
 
 def main():

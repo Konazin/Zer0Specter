@@ -31,6 +31,12 @@ cd zer0specter
 
 ### Manual Installation
 
+0. **System requirements for GUI version**:
+   - Linux (Debian/Ubuntu): `sudo apt update && sudo apt install python3-tk`
+   - Fedora/RHEL: `sudo dnf install python3-tkinter`
+   - Arch: `sudo pacman -S tk`
+   - Windows: Select the option `tcl/tk` on Python installer (or install the suitable packet)
+
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/konazin/zer0specter.git
