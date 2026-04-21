@@ -18,10 +18,14 @@ def ip_locator(argus):
                 print(f"Country: {data.get('country')}")
                 print(f"Region: {data.get('region')}")
                 print(f"City: {data.get('city')}")
-                print(f"ISP: {data.get('isp')}")
+                print(f"Connection Type: {data.get('type')}")
                 print(f"Connection Type: {data.get('type')}")
                 print(f"Latitude: {data.get('latitude')}")
                 print(f"Longitude: {data.get('longitude')}")
+                print("Connections: ")
+                connection = data.get('connection')
+                for name, value in connection.items():
+                    print(f"{name} : {value}")
             else:
                 print(f"[ERROR] API error: {data.get('message', 'Unknown')}")
         else:
