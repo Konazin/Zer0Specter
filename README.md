@@ -1,7 +1,7 @@
 # ZeroSpecter
 
 [![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/konazin/zer0specter)
-[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 A comprehensive penetration testing toolkit for authorized security assessments. ZeroSpecter provides a collection of security tools designed for ethical hackers and security professionals.
@@ -63,45 +63,44 @@ cd zer0specter
 
 ### Command Line Interface
 
-After installation, you can run ZeroSpecter using:
+After installation, open the interactive terminal interface with:
 
 ```bash
-zer0specter
+zer0specter tui
 ```
 
-Or directly with the virtual environment:
+Direct commands and help remain available from Bash:
 
 ```bash
-source .venv/bin/activate
-zer0specter
+zer0specter --help
+zer0specter port-scanner --target 127.0.0.1
 ```
 
 ### Available Commands
 
-- `help` - Show available commands
-- `passgen` - Password generator
-- `iplocator` - IP geolocation tool
-- `portscan` - Port scanner
-- `zipcrack` - ZIP file cracker
-- `sniffer` - Network sniffer
-- `wifi` - WiFi attack tools
-- `quit` / `exit` - Exit the program
+- `tui` - Open the interactive terminal interface
+- `packet-sniffer` - Capture and display network packets
+- `port-scanner` - Scan target ports
+- `ip-geolocation` - Retrieve geolocation information
+- `password-generator` - Generate random secure passwords
+- `zip-cracker` - Test passwords against a protected ZIP file
+- `wifi-deauth` - Send Wi-Fi deauthentication packets
 
 ### Examples
 
 **Generate a password:**
 ```
-zer0specter> passgen -l 16 -s -n
+zer0specter password-generator --numberchar 16 --punctuation y --numbers y
 ```
 
 **Scan ports:**
 ```
-zer0specter> portscan -t 192.168.1.1 -p 1-1000
+zer0specter port-scanner --target 192.168.1.1 --start 1 --end 1000
 ```
 
 **Crack a ZIP file:**
 ```
-zer0specter> zipcrack -f encrypted.zip -w wordlist.txt
+zer0specter zip-cracker --path encrypted.zip --wordlist wordlist.txt
 ```
 
 ## Development
@@ -153,7 +152,7 @@ zer0specter/
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.9+
 - See `requirements.txt` for Python dependencies
 
 ## Contributing

@@ -47,6 +47,7 @@ def _slow_print(text: str, delay: float = 0.012) -> None:
         sys.stdout.flush()
         time.sleep(delay)
 
+#decapred
 def _clear() -> None:
     os.system("cls" if os.name == "nt" else "clear")
 

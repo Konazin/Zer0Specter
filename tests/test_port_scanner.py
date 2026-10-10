@@ -1,84 +1,95 @@
-"""Tests for port scanner module."""
+"""Behavioral tests for the port scanner command handler."""
+
+import socket
+from unittest.mock import MagicMock
 
 import pytest
-from unittest.mock import patch, MagicMock
-from zer0specter.modules.port_scanner import scan_ports, PortScanner
+
+from zer0specter.modules import port_scanner
 
 
-class TestPortScanner:
-    """Test cases for PortScanner class."""
+@pytest.fixture(autouse=True)
+def quiet_logger(monkeypatch):
+    monkeypatch.setattr(port_scanner, "get_logger", lambda: MagicMock())
 
-    def test_scan_ports_basic(self):
-        """Test basic port scanning functionality."""
-        # Mock socket operations
-        with patch('socket.socket') as mock_socket:
-            mock_sock_instance = MagicMock()
-            mock_socket.return_value = mock_sock_instance
-            mock_sock_instance.connect_ex.return_value = 0  # Port open
 
-            open_ports = scan_ports("127.0.0.1", start_port=80, end_port=80, timeout=1)
+def make_socket(monkeypatch, *, banner=b"", banner_response=b""):
+    sock = MagicMock()
+    sock.__enter__.return_value = sock
+    sock.recv.side_effect = [banner, banner_response]
+    monkeypatch.setattr(port_scanner.socket, "socket", lambda *args: sock)
+    return sock
 
-            assert 80 in open_ports
-            mock_sock_instance.connect_ex.assert_called_with(("127.0.0.1", 80))
 
-    def test_scan_ports_closed(self):
-        """Test scanning closed ports."""
-        with patch('socket.socket') as mock_socket:
-            mock_sock_instance = MagicMock()
-            mock_socket.return_value = mock_sock_instance
-            mock_sock_instance.connect_ex.return_value = 1  # Port closed
+def test_open_port_without_banner_is_reported_without_active_probe(monkeypatch, capsys):
+    sock = make_socket(monkeypatch)
 
-            open_ports = scan_ports("127.0.0.1", start_port=80, end_port=80, timeout=1)
+    status = port_scanner.portscanner(
+        ["--target", "127.0.0.1", "--start", "80", "--end", "80"]
+    )
 
-            assert 80 not in open_ports
+    assert status == 0
+    assert "80/tcp open" in capsys.readouterr().out
+    sock.sendall.assert_not_called()
 
-    def test_scan_ports_range(self):
-        """Test scanning a range of ports."""
-        with patch('socket.socket') as mock_socket:
-            mock_sock_instance = MagicMock()
-            mock_socket.return_value = mock_sock_instance
-            # Alternate between open and closed ports
-            mock_sock_instance.connect_ex.side_effect = [0, 1, 0, 1, 0]
 
-            open_ports = scan_ports("127.0.0.1", start_port=80, end_port=84, timeout=1)
+def test_banner_probe_is_opt_in_and_does_not_change_open_state(monkeypatch, capsys):
+    sock = make_socket(monkeypatch, banner=b"", banner_response=b"Server: example\r\n")
 
-            expected_open = [80, 82, 84]
-            assert open_ports == expected_open
+    status = port_scanner.portscanner(
+        [
+            "--target",
+            "127.0.0.1",
+            "--start",
+            "80",
+            "--end",
+            "80",
+            "--banner",
+        ]
+    )
 
-    def test_scan_ports_timeout(self):
-        """Test port scanning with timeout."""
-        with patch('socket.socket') as mock_socket:
-            mock_sock_instance = MagicMock()
-            mock_socket.return_value = mock_sock_instance
-            mock_sock_instance.connect_ex.return_value = 0
+    assert status == 0
+    output = capsys.readouterr().out
+    assert "80/tcp open" in output
+    assert "Server: example" in output
+    sock.sendall.assert_called_once()
 
-            open_ports = scan_ports("127.0.0.1", start_port=80, end_port=80, timeout=5)
 
-            # Verify timeout was set
-            mock_sock_instance.settimeout.assert_called_with(5)
+def test_connection_refused_is_not_reported_as_open(monkeypatch, capsys):
+    sock = make_socket(monkeypatch)
+    sock.connect.side_effect = ConnectionRefusedError
 
-    @pytest.mark.parametrize("invalid_ip", [
-        "256.1.1.1",
-        "192.168.1.256",
-        "invalid.ip.address",
-        "",
-    ])
-    def test_invalid_ip_addresses(self, invalid_ip):
-        """Test handling of invalid IP addresses."""
-        with pytest.raises(ValueError):
-            scan_ports(invalid_ip, start_port=80, end_port=80)
+    status = port_scanner.portscanner(
+        ["--target", "127.0.0.1", "--start", "80", "--end", "80"]
+    )
 
-    def test_port_range_validation(self):
-        """Test port range validation."""
-        # Valid ranges
-        scan_ports("127.0.0.1", start_port=1, end_port=100)  # Should not raise
+    assert status == 0
+    assert "80/tcp open" not in capsys.readouterr().out
 
-        # Invalid ranges
-        with pytest.raises(ValueError):
-            scan_ports("127.0.0.1", start_port=0, end_port=100)  # Start port too low
 
-        with pytest.raises(ValueError):
-            scan_ports("127.0.0.1", start_port=100, end_port=80)  # Start > end
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["--target", "127.0.0.1", "--start", "0", "--end", "80"],
+        ["--target", "127.0.0.1", "--start", "80", "--end", "79"],
+        ["--target", "127.0.0.1", "--start", "80", "--end", "70000"],
+        ["--target", "127.0.0.1", "--timeout", "nan"],
+        ["--target", "::1"],
+    ],
+)
+def test_invalid_scan_inputs_return_usage_error(monkeypatch, args):
+    sock = make_socket(monkeypatch)
 
-        with pytest.raises(ValueError):
-            scan_ports("127.0.0.1", start_port=80, end_port=70000)  # End port too high
+    with pytest.raises(SystemExit) as error:
+        port_scanner.portscanner(args)
+
+    assert error.value.code == 2
+    sock.connect.assert_not_called()
+
+
+def test_dns_failure_returns_runtime_error(monkeypatch):
+    monkeypatch.setattr(
+        port_scanner.socket, "gethostbyname", MagicMock(side_effect=socket.gaierror)
+    )
+
+    assert port_scanner.portscanner(["--target", "missing.invalid"]) == 1

@@ -2,20 +2,21 @@
 
 ## Getting Started
 
-After installation, start ZeroSpecter with:
+After installation, open the interactive terminal interface with:
 
 ```bash
-zer0specter
+zer0specter tui
 ```
 
-You'll see the welcome banner and available commands.
+Direct module commands remain available; use `zer0specter --help` to list them.
 
 ## Command Reference
 
 ### Core Commands
 
-- `help` - Display help information and available commands
-- `quit` or `exit` - Exit the program
+- `zer0specter --help` - Display available direct commands
+- `zer0specter tui` - Start the interactive terminal interface
+- `zer0specter <command> [options]` - Run a module directly from the shell
 
 ### Module Commands
 

@@ -37,7 +37,7 @@ class ZeroSpecterLogger:
         )
 
         # Console handler
-        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler = logging.StreamHandler(sys.stderr)
         console_handler.setLevel(self.level)
         console_handler.setFormatter(console_formatter)
         self.logger.addHandler(console_handler)

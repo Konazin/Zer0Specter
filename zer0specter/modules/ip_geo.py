@@ -1,34 +1,69 @@
+"""Retrieve geolocation information for an IP address."""
+
 import argparse
+from typing import List
+
 import requests
 
-def ip_locator(argus):
-    parser = argparse.ArgumentParser(description="Geolocate an IP address")
-    parser.add_argument("-ip", type=str, nargs='?', default=None, help="Target IP address (leave empty for your own IP)")
-    args = parser.parse_args(argus)
+from zer0specter.utils.logger import get_logger
+from zer0specter.utils.validators import validate_ip_address
 
-    target_ip = args.ip if args.ip else ""
+
+def ip_locator(argus: List[str]) -> int:
+    parser = argparse.ArgumentParser(description="Geolocate an IP address")
+    parser.add_argument(
+        "-ip",
+        dest="ip",
+        nargs="?",
+        default=None,
+        help="target IP address (leave empty to locate this connection)",
+    )
+    args = parser.parse_args(argus)
+    logger = get_logger()
+
+    if args.ip and not validate_ip_address(args.ip):
+        parser.error("target must be a valid IPv4 or IPv6 address")
+
+    url = f"https://ipwho.is/{args.ip}" if args.ip else "https://ipwho.is/"
     try:
-        url = f"https://ipwho.is/{target_ip}" if target_ip else "https://ipwho.is/"
-        response = requests.get(url)
-        if response.status_code == 200:
-            data = response.json()
-            if data.get("success", True):
-                print("----- Result -----")
-                print(f"IP: {data.get('ip')}")
-                print(f"Country: {data.get('country')}")
-                print(f"Region: {data.get('region')}")
-                print(f"City: {data.get('city')}")
-                print(f"Connection Type: {data.get('type')}")
-                print(f"Connection Type: {data.get('type')}")
-                print(f"Latitude: {data.get('latitude')}")
-                print(f"Longitude: {data.get('longitude')}")
-                print("Connections: ")
-                connection = data.get('connection')
-                for name, value in connection.items():
-                    print(f"{name} : {value}")
-            else:
-                print(f"[ERROR] API error: {data.get('message', 'Unknown')}")
-        else:
-            print(f"[ERROR] Request failed. Status code: {response.status_code}")
-    except Exception as e:
-        print(f"[ERROR] Exception occurred: {str(e)}")
+        response = requests.get(url, timeout=10)
+    except requests.RequestException as error:
+        logger.error("Geolocation request failed (%s)", type(error).__name__)
+        return 1
+
+    if response.status_code != 200:
+        logger.error("Geolocation service returned HTTP %s", response.status_code)
+        return 1
+
+    try:
+        data = response.json()
+    except ValueError:
+        logger.error("Geolocation service returned invalid JSON")
+        return 1
+
+    if (
+        not isinstance(data, dict)
+        or data.get("success") is not True
+        or not data.get("ip")
+    ):
+        logger.error("Geolocation service could not resolve the requested address")
+        return 1
+
+    print("----- Result -----")
+    for label, field in (
+        ("IP", "ip"),
+        ("Country", "country"),
+        ("Region", "region"),
+        ("City", "city"),
+        ("Connection Type", "type"),
+        ("Latitude", "latitude"),
+        ("Longitude", "longitude"),
+    ):
+        print(f"{label}: {data.get(field)}")
+
+    connection = data.get("connection")
+    if isinstance(connection, dict) and connection:
+        print("Connection:")
+        for name, value in connection.items():
+            print(f"{name}: {value}")
+    return 0

@@ -1,99 +1,113 @@
+"""TCP port scanner with an optional banner probe."""
+
 import argparse
+import math
 import socket
-import sys
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 from zer0specter.utils.logger import get_logger
-from zer0specter.utils.validators import validate_ip_address, validate_port_range, validate_timeout
+from zer0specter.utils.validators import (
+    validate_ip_address,
+    validate_port_range,
+    validate_timeout,
+)
 
-logger = get_logger()
 
-def portscanner(argus: List[str]) -> None:
-    """Port scanner module with banner grabbing capabilities."""
-
-    def arguments() -> argparse.Namespace:
-        """Parse command line arguments."""
-        p = argparse.ArgumentParser(description="port scanner / banner grabber")
-        p.add_argument("-t", "--target", help="IPv4 or hostname of target", dest="target", required=True)
-        p.add_argument("-s", "--start", help="start port", dest="start", type=int, default=1)
-        p.add_argument("-e", "--end", help="end port", dest="end", type=int, default=2048)
-        p.add_argument("-d", "--delay", help="socket timeout in seconds", dest="timeout", type=float, default=0.2)
-        return p.parse_args(argus)
-
-    def scan(host: str, port: int, timeout: float) -> Optional[str]:
-        """Scan a single port and attempt banner grabbing."""
+def _scan_port(
+    host: str, port: int, timeout: float, probe_banner: bool
+) -> Tuple[bool, Optional[str]]:
+    """Return TCP reachability separately from any banner text."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as connection:
+        connection.settimeout(timeout)
         try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(timeout)
-            s.connect((host, port))
-            try:
-                data = s.recv(1024)
-                if data:
-                    return data.decode('utf-8', errors="replace").strip()
-                try:
-                    s.sendall(b"HEAD / HTTP/1.0\r\nHost: %s\r\n\r\n" % host.encode())
-                    data = s.recv(2048)
-                    if data:
-                        text = data.decode('utf-8', errors="replace").splitlines()
-                        for line in text:
-                            if line.lower().startswith("server:"):
-                                return line.strip()
-                        return text[0].strip() if text else None
-                except Exception:
-                    pass
-            finally:
-                s.close()
-        except Exception:
-            return None
+            connection.connect((host, port))
+        except PermissionError:
+            raise
+        except OSError:
+            return False, None
 
-    def scanner(host: str, start: int, end: int, timeout: float) -> None:
-        """Perform port scanning on the specified range."""
-        # Validate port range
-        valid_range, port_tuple = validate_port_range(f"{start}-{end}")
-        if not valid_range:
-            logger.error("Invalid port range specified")
-            return
+        if not probe_banner:
+            return True, None
 
-        start, end = port_tuple
+        try:
+            data = connection.recv(1024)
+            if not data:
+                connection.sendall(
+                    b"HEAD / HTTP/1.0\r\nHost: " + host.encode("ascii") + b"\r\n\r\n"
+                )
+                data = connection.recv(2048)
+            if not data:
+                return True, None
 
-        open_ports: List[Tuple[int, str]] = []
-        logger.info(f"Scanning {host} ports {start}..{end} (timeout={timeout}s)")
+            lines = data.decode("utf-8", errors="replace").splitlines()
+            for line in lines:
+                if line.lower().startswith("server:"):
+                    return True, line.strip()
+            return True, lines[0].strip() if lines else None
+        except (OSError, TimeoutError):
+            return True, None
 
+
+def portscanner(argus: List[str]) -> int:
+    """Scan a target and print open TCP ports to stdout."""
+    parser = argparse.ArgumentParser(description="TCP port scanner")
+    parser.add_argument(
+        "-t", "--target", required=True, help="IPv4 address or hostname"
+    )
+    parser.add_argument("-s", "--start", type=int, default=1, help="first port")
+    parser.add_argument("-e", "--end", type=int, default=2048, help="last port")
+    parser.add_argument(
+        "-d",
+        "--delay",
+        "--timeout",
+        type=float,
+        default=0.2,
+        help="connection timeout in seconds",
+    )
+    parser.add_argument(
+        "--banner", action="store_true", help="probe open ports for a banner"
+    )
+    args = parser.parse_args(argus)
+    logger = get_logger()
+
+    valid_range, port_range = validate_port_range(f"{args.start}-{args.end}")
+    if not valid_range:
+        parser.error("ports must be within 1..65535 and start must not exceed end")
+
+    valid_timeout, timeout = validate_timeout(args.delay)
+    if not valid_timeout or not math.isfinite(timeout):
+        parser.error("timeout must be a finite positive number")
+
+    if validate_ip_address(args.target):
+        if ":" in args.target:
+            parser.error("IPv6 targets are not supported")
+        target = args.target
+    else:
+        try:
+            target = socket.gethostbyname(args.target)
+        except socket.gaierror:
+            logger.error("Could not resolve target hostname")
+            return 1
+
+    start, end = port_range
+    logger.info("Scanning %s TCP ports %s-%s", target, start, end)
+    open_ports = []
+    try:
         for port in range(start, end + 1):
-            banner = scan(host, port, timeout)
-            if banner is not None:
-                logger.info(f"OPEN {port:5d}  - banner: {banner}")
+            is_open, banner = _scan_port(target, port, timeout, args.banner)
+            if is_open:
                 open_ports.append((port, banner))
+    except OSError as error:
+        logger.error("Port scan failed (%s)", type(error).__name__)
+        return 1
 
-        if not open_ports:
-            logger.info("NO OPEN PORTS FOUND")
-        else:
-            logger.info("Scan summary:")
-            for port, banner in sorted(open_ports):
-                logger.info(f" - {port:5d} : {banner}")
+    if not open_ports:
+        print("No open ports found.")
+        return 0
 
-    def main() -> None:
-        """Main function for port scanner."""
-        args = arguments()
-
-        # Validate target
-        if not validate_ip_address(args.target):
-            try:
-                # Try to resolve hostname
-                host_ip = socket.gethostbyname(args.target)
-                logger.debug(f"Resolved {args.target} to {host_ip}")
-            except socket.gaierror as e:
-                logger.error(f"Could not resolve host '{args.target}': {e}")
-                sys.exit(1)
-        else:
-            host_ip = args.target
-
-        # Validate timeout
-        valid_timeout, timeout_val = validate_timeout(args.timeout)
-        if not valid_timeout:
-            logger.error("Invalid timeout value")
-            sys.exit(1)
-
-        scanner(host_ip, args.start, args.end, timeout_val)
-
-    main()
+    for port, banner in open_ports:
+        line = f"{port}/tcp open"
+        if banner:
+            line += f" - {banner}"
+        print(line)
+    return 0

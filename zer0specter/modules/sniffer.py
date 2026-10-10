@@ -1,92 +1,114 @@
-from scapy.all import *
-from scapy.all import Dot11, sendp, ARP, IP, TCP, UDP, ICMP, Ether
+"""Capture and display packets from a network interface."""
 
-def sniffer(argus):
-    def args():
-        parser = argparse.ArgumentParser(description="Packet sniffer (like tcpdump)")
-        parser.add_argument("-i", "--interface", dest="interface", help="Network interface to sniff on", default=None)
-        parser.add_argument("-si", "--showinterfaces", dest="sinterfaces", action="store_true", help="List available network interfaces")
-        return parser.parse_args(argus)
+import argparse
+import time
+from typing import List
 
-    args_parsed = args()
+from zer0specter.utils.logger import get_logger
 
-    if args_parsed.sinterfaces:
-        print("\n[+] Available network interfaces:")
-        for idx, iface in enumerate(ifaces):
-            print(f"  {idx}: {iface}")
-        return
 
-    if not args_parsed.interface:
-        print("[!] Error: Please specify an interface with -i/--interface.")
-        print("    Use --showinterfaces to list available interfaces.")
-        return
+def sniffer(argus: List[str]) -> int:
+    parser = argparse.ArgumentParser(description="Packet sniffer (like tcpdump)")
+    parser.add_argument(
+        "-i", "--interface", dest="interface", help="interface to capture"
+    )
+    parser.add_argument(
+        "-si",
+        "--showinterfaces",
+        dest="show_interfaces",
+        action="store_true",
+        help="list available network interfaces",
+    )
+    args = parser.parse_args(argus)
+    logger = get_logger()
 
-    print(f"\n[+] Starting sniffer on interface: {args_parsed.interface}")
-    print("[+] Press Ctrl+C to stop.\n")
-    print(f"{'TIME':<10} {'PROTOCOL':<8} {'SOURCE':<22} {'DESTINATION':<22} {'INFO'}")
+    if args.show_interfaces:
+        try:
+            from scapy.all import ifaces
+        except Exception as error:
+            logger.error("Could not load network interfaces (%s)", type(error).__name__)
+            return 1
+
+        print("Available network interfaces:")
+        for index, interface in enumerate(ifaces):
+            print(f"{index}: {interface}")
+        return 0
+
+    if not args.interface:
+        parser.error("specify an interface with -i/--interface")
+
+    try:
+        from scapy.all import ARP, Dot11, Ether, ICMP, IP, TCP, UDP, sniff
+    except Exception as error:
+        logger.error("Could not load packet capture support (%s)", type(error).__name__)
+        return 1
+
+    logger.info(
+        "Capturing packets on interface %s; press Ctrl+C to stop", args.interface
+    )
+    print(f"{'TIME':<10} {'PROTOCOL':<8} {'SOURCE':<22} {'DESTINATION':<22} INFO")
     print("-" * 80)
 
     def process_packet(packet):
         try:
-            ts = time.strftime("%H:%M:%S", time.localtime())
-            proto = "OTHER"
-            src = dst = "N/A"
+            timestamp = time.strftime("%H:%M:%S", time.localtime())
+            protocol = "OTHER"
+            source = destination = "N/A"
             info = ""
 
             if packet.haslayer(IP):
-                src = packet[IP].src
-                dst = packet[IP].dst
-                proto_num = packet[IP].proto
-                if proto_num == 6:
-                    proto = "TCP"
-                elif proto_num == 17:
-                    proto = "UDP"
-                elif proto_num == 1:
-                    proto = "ICMP"
-                else:
-                    proto = f"IP({proto_num})"
+                source = packet[IP].src
+                destination = packet[IP].dst
+                protocol_number = packet[IP].proto
+                protocol = {6: "TCP", 17: "UDP", 1: "ICMP"}.get(
+                    protocol_number, f"IP({protocol_number})"
+                )
 
                 if packet.haslayer(TCP):
-                    sport = packet[TCP].sport
-                    dport = packet[TCP].dport
-                    info = f"{sport} → {dport}"
+                    info = f"{packet[TCP].sport} → {packet[TCP].dport}"
                 elif packet.haslayer(UDP):
-                    sport = packet[UDP].sport
-                    dport = packet[UDP].dport
-                    info = f"{sport} → {dport}"
+                    info = f"{packet[UDP].sport} → {packet[UDP].dport}"
                 elif packet.haslayer(ICMP):
                     info = f"Type {packet[ICMP].type} Code {packet[ICMP].code}"
-
             elif packet.haslayer(ARP):
-                proto = "ARP"
-                src = packet[ARP].psrc
-                dst = packet[ARP].pdst
+                protocol = "ARP"
+                source = packet[ARP].psrc
+                destination = packet[ARP].pdst
                 info = "who-has" if packet[ARP].op == 1 else "is-at"
-
             elif packet.haslayer(Dot11):
-                proto = "WLAN"
-                src = packet[Dot11].addr2 or "N/A"
-                dst = packet[Dot11].addr1 or "N/A"
-                info = ""
-
+                protocol = "WLAN"
+                source = packet[Dot11].addr2 or "N/A"
+                destination = packet[Dot11].addr1 or "N/A"
             else:
                 if packet.haslayer(Ether):
-                    src = packet[Ether].src
-                    dst = packet[Ether].dst
+                    source = packet[Ether].src
+                    destination = packet[Ether].dst
                 info = f"{len(packet)} bytes"
 
-            src = (src[:20] + "..") if len(src) > 20 else src
-            dst = (dst[:20] + "..") if len(dst) > 20 else dst
-            info = (info[:30] + "..") if len(info) > 30 else info
-
-            print(f"{ts:<10} {proto:<8} {src:<22} {dst:<22} {info}")
-
-        except Exception:
-            pass
+            source = str(source)
+            destination = str(destination)
+            source = source[:20] + ".." if len(source) > 20 else source
+            destination = (
+                destination[:20] + ".." if len(destination) > 20 else destination
+            )
+            info = str(info)
+            info = info[:30] + ".." if len(info) > 30 else info
+            print(
+                f"{timestamp:<10} {protocol:<8} {source:<22} "
+                f"{destination:<22} {info}"
+            )
+        except Exception as error:
+            logger.debug("Could not format captured packet (%s)", type(error).__name__)
 
     try:
-        sniff(iface=args_parsed.interface, prn=process_packet, store=False)
+        sniff(iface=args.interface, prn=process_packet, store=False)
     except PermissionError:
-        print("\n[!] Permission denied. Please run as root/Administrator.")
+        logger.error("Permission denied while capturing on %s", args.interface)
+        return 1
     except KeyboardInterrupt:
-        print("\n\n[+] Sniffer stopped by user.")
+        logger.warning("Packet capture interrupted by user")
+        return 130
+    except Exception as error:
+        logger.error("Packet capture failed (%s)", type(error).__name__)
+        return 1
+    return 0
